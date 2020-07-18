@@ -1,0 +1,3 @@
+git+git://github.com/alok1974/minescrubber_core.git
+PySide2==5.15.0
+shiboken2==5.15.0
