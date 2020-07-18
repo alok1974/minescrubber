@@ -1,6 +1,6 @@
 # Minescrubber
 
-Classic Minesweeper game imlemented in python
+Classic Minesweeper game implemented in python
 
 ![minescrubber_image](https://github.com/alok1974/minescrubber/blob/develop/minescrubber.png)
 
