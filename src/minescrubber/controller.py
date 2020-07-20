@@ -14,6 +14,9 @@ class UI(abstract.UI):
     def game_over(self, board):
         self.main_window.game_over(board=board)
 
+    def game_solved(self, board):
+        self.main_window.game_solved(board=board)
+
     def run(self):
         self.main_window.show()
 
@@ -24,6 +27,14 @@ class UI(abstract.UI):
     @property
     def cell_selected_signal(self):
         return self.main_window.CELL_SELECTED_SIGNAL
+
+    @property
+    def cell_flagged_signal(self):
+        return self.main_window.CELL_FLAGGED_SIGNAL
+
+    @property
+    def wiring_method_name(self):
+        return 'connect'
 
 
 class Controller(abstract.Controller):

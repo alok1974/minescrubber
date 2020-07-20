@@ -1,5 +1,4 @@
-import collections
-
+import enum
 
 from PIL import Image, ImageFont, ImageDraw, ImageQt
 
@@ -7,20 +6,18 @@ from PIL import Image, ImageFont, ImageDraw, ImageQt
 from . import conf
 
 
-def _declare_constants(obj_name, **name_value_dict):
-    "A named tuple generator used for declaring contants"
-    ConstantContainer = collections.namedtuple(
-        obj_name,
-        name_value_dict.keys(),
-    )
-    return ConstantContainer(*name_value_dict.values())
+@enum.unique
+class CELL_STYLE(enum.Enum):
+    covered = 0
+    uncovered = 1
 
 
-CELL_STYLE = _declare_constants(
-    obj_name='CELL_STYLE',
-    covered='covered',
-    uncovered='uncovered',
-)
+@enum.unique
+class CELL_DRAW_METHOD(enum.Enum):
+    flag = 0
+    mine = 1
+    hint = 2
+    solved = 3
 
 
 class BoardImage:
@@ -29,6 +26,10 @@ class BoardImage:
     EDGE_COLOR = (27, 27, 27)
     FONT_COLOR = (0, 0, 255)
     MINE_FONT_COLOR = (255, 0, 0)
+    SOLVED_MINE_COLOR = (80, 80, 80)
+    SOLVED_CROSS_COLOR = (153, 14, 14)
+    SOLVED_CROSS_COLOR = (60, 60, 60)
+    FLAG_FONT_COLOR = (0, 255, 0)
     EDGE_WIDTH_CONTROL = 12  # Lesser produces thicker edges (12 is ideal)
 
     def __init__(self, board):
@@ -38,54 +39,18 @@ class BoardImage:
     def qt_image(self):
         return ImageQt.ImageQt(self._board_image)
 
-    def draw(self):
-        for y in range(self._board.height):
-            for x in range(self._board.width):
-                slot = (x, y)
-                cell = self._board.data[slot]
-
-                if self._board.mines:
-                    cell_image_to_use = self._cell_image_uncovered
-                else:
-                    cell_image_to_use = (
-                        self._cell_image_covered
-                        if cell.is_covered
-                        else self._cell_image_uncovered
-                    )
-
-                x_coord = (
-                    ((self.cell_image_size + self._edge_width) * x)
-                    + self._edge_width
-                )
-
-                y_coord = (
-                    ((self.cell_image_size + self._edge_width) * y)
-                    + self._edge_width
-                )
-
-                self._board_image.paste(
-                    cell_image_to_use,
-                    (x_coord, y_coord),
-                )
-
-                # Game Over
-                if self._board.mines:
-                    self._draw_hints(
-                        cell=cell,
-                        x=x_coord,
-                        y=y_coord,
-                        draw_mines=True,
-                    )
-                elif cell.hint is None or cell.hint == 0 or cell.is_covered:
-                    continue
-                else:
-                    self._draw_hints(cell=cell, x=x_coord, y=y_coord)
+    @property
+    def is_solved(self):
+        return self._board.mine_slots == sorted(
+            self._board.covered_slots +
+            self._board.flagged_slots
+        )
 
     def init_image(self, board):
         self._board = board
         self.cell_image_size = min(
-                min(48, int(432 / self._board.width)),
-                min(48, int(432 / self._board.height))
+            min(48, int(432 / self._board.width)),
+            min(48, int(432 / self._board.height))
         )
 
         self._edge_width = int(self.cell_image_size / self.EDGE_WIDTH_CONTROL)
@@ -100,8 +65,171 @@ class BoardImage:
         self._board_image = self._create_board_image()
         self.draw()
 
+    def pixel_to_slot(self, x, y):
+        quotient_x, remainder_x = divmod(
+            x,
+            self._edge_width + self.cell_image_size,
+        )
+
+        quotient_y, remainder_y = divmod(
+            y,
+            self._edge_width + self.cell_image_size,
+        )
+        if remainder_x <= self._edge_width or remainder_y <= self._edge_width:
+            return
+
+        return quotient_x, quotient_y
+
+    def show(self):
+        self._board_image.show()
+
+    def draw(self):
+        for y in range(self._board.height):
+            for x in range(self._board.width):
+                self._draw_cell(x, y)
+
+    def _draw_cell(self, x, y):
+        slot = (x, y)
+        cell = self._board.data[slot]
+        cell_image_to_use = (
+            self._cell_image_uncovered
+            if cell.is_uncovered
+            else self._cell_image_covered
+        )
+
+        x_coord = self._get_cell_coordinate(x)
+        y_coord = self._get_cell_coordinate(y)
+
+        self._board_image.paste(cell_image_to_use, (x_coord, y_coord))
+        self. _draw_overlay(x_coord, y_coord, cell)
+
+    def _get_cell_coordinate(self, coord):
+        return (
+            ((self.cell_image_size + self._edge_width) * coord)
+            + self._edge_width
+        )
+
+    def _draw_overlay(self, x, y, cell):
+        if cell.is_uncovered:
+            if cell.has_mine:
+                return self._draw_mine(x, y, cell)
+            elif cell.hint != 0:
+                self._draw_hint(x, y, cell)
+            else:
+                return
+        elif self.is_solved and cell.has_mine:
+            self._draw_solved(x, y, cell)
+        elif cell.is_flagged:
+            return self._draw_flag(x, y, cell)
+        else:
+            return
+
+    def _draw_flag(self, x, y, cell):
+        self._overlay(x, y, cell, draw_method=CELL_DRAW_METHOD.flag)
+
+    def _draw_hint(self, x, y, cell):
+        self._overlay(x, y, cell, draw_method=CELL_DRAW_METHOD.hint)
+
+    def _draw_mine(self, x, y, cell):
+        self._overlay(x, y, cell, draw_method=CELL_DRAW_METHOD.mine)
+
+    def _draw_solved(self, x, y, cell):
+        self._overlay(x, y, cell, draw_method=CELL_DRAW_METHOD.solved)
+
+    def _overlay(self, x, y, cell, draw_method=CELL_DRAW_METHOD.hint):
+        font = None
+        cell_text = None
+        height_adjustment = None
+        fill = None
+        draw_cross = False
+        if draw_method == CELL_DRAW_METHOD.mine:
+            cell_text = '\U00002620'  # unicode point for skull
+            fill = self.MINE_FONT_COLOR
+            font = ImageFont.truetype(
+                conf.FONT_FILE_PATH,
+                size=int(self.cell_image_size / 1.3)
+            )
+            height_adjustment = -4
+        elif draw_method == CELL_DRAW_METHOD.hint:
+            cell_text = str(cell.hint)
+            fill = self.FONT_COLOR
+            font = ImageFont.truetype(
+                conf.FONT_FILE_PATH,
+                size=int(self.cell_image_size / 2.5)
+            )
+            height_adjustment = 0
+        elif draw_method == CELL_DRAW_METHOD.flag:
+            # TODO: Write logic for flag here
+            cell_text = '\U00002690'  # unicode point for flag
+            fill = self.FLAG_FONT_COLOR
+            font = ImageFont.truetype(
+                conf.FONT_FILE_PATH,
+                size=int(self.cell_image_size / 1.3)
+            )
+            height_adjustment = -4
+        elif draw_method == CELL_DRAW_METHOD.solved:
+            cell_text = '\U00002620'  # unicode point for skull
+            fill = self.SOLVED_MINE_COLOR
+            font = ImageFont.truetype(
+                conf.FONT_FILE_PATH,
+                size=int(self.cell_image_size / 1.3)
+            )
+            height_adjustment = -4
+            draw_cross = True
+        else:
+            error_msg = (
+                f"Cannot handle unknown `draw_method={draw_method}`"
+            )
+            raise ValueError(error_msg)
+
+        font_width, font_height = font.getsize(cell_text)
+        draw_context = ImageDraw.Draw(self._board_image)
+        draw_context.text(
+            (
+                (
+                    x
+                    + (self.cell_image_size / 2)
+                    - (font_width / 2)
+                ),
+                (
+                    y
+                    + (self.cell_image_size / 2)
+                    - (font_height / 2)
+                    + height_adjustment
+                ),
+            ),
+            cell_text,
+            font=font,
+            fill=fill,
+            align="center",
+
+        )
+
+        if draw_cross:
+            inset_ratio = 0.2
+            incr_small = int(self.cell_image_size * inset_ratio)
+            incr_large = int(self.cell_image_size * (1 - inset_ratio))
+
+            p1 = (x + incr_small, y + incr_small)
+            p2 = (x + incr_large, y + incr_large)
+            draw_context.line(
+                [p1, p2],
+                fill=self.SOLVED_CROSS_COLOR,
+                width=self._edge_width,
+                joint=None,
+            )
+
+            p3 = (x + incr_small, y + incr_large)
+            p4 = (x + incr_large, y + incr_small)
+            draw_context.line(
+                [p3, p4],
+                fill=self.SOLVED_CROSS_COLOR,
+                width=self._edge_width,
+                joint=None,
+            )
+
     def _draw_hints(self, cell, x, y, draw_mines=False):
-        if cell.hint == 0:
+        if not draw_mines and (cell.hint == 0 or cell.hint is None):
             return
 
         if draw_mines and cell.has_mine:
@@ -144,9 +272,6 @@ class BoardImage:
 
         )
 
-    def show(self):
-        self._board_image.show()
-
     def _create_cell_image(self, cell_state):
         color = None
         if cell_state == CELL_STYLE.covered:
@@ -180,94 +305,3 @@ class BoardImage:
             (board_image_width, board_image_height),
             color=self.EDGE_COLOR,
         )
-
-    def pixel_to_slot(self, x, y):
-        quotient_x, remainder_x = divmod(
-            x,
-            self._edge_width + self.cell_image_size,
-        )
-
-        quotient_y, remainder_y = divmod(
-            y,
-            self._edge_width + self.cell_image_size,
-        )
-        if remainder_x <= self._edge_width or remainder_y <= self._edge_width:
-            return
-
-        return quotient_x, quotient_y
-
-
-def test_board_image():
-    import random
-    cell_size = 120
-    edge_width = int(cell_size / 12)
-    width = 4
-    height = 4
-    font_size = int(cell_size / 2)
-    uncovered_color = (145, 156, 255)
-    covered_color = (255, 145, 156)
-    board_color = (54, 54, 54)
-
-    font_file_path = (
-        '/Users/alok/dev/github/minescrubber/src/minescrubber/resources'
-        '/mono.ttf'
-    )
-    font = ImageFont.truetype(font_file_path, size=font_size)
-
-    cell_image_covered = Image.new(
-        'RGBA',
-        (cell_size, cell_size),
-        color=covered_color,
-    )
-
-    cell_image_uncovered = Image.new(
-        'RGBA',
-        (cell_size, cell_size),
-        color=uncovered_color,
-    )
-
-    board_image_width = (
-        ((cell_size + edge_width) * width) + edge_width
-    )
-    board_image_height = (
-        ((cell_size + edge_width) * height) + edge_width
-    )
-
-    board_image = Image.new(
-        'RGBA',
-        (board_image_width, board_image_height),
-        color=board_color,
-    )
-
-    for y in range(height):
-        for x in range(width):
-            cell_image_to_use = (
-                cell_image_covered
-                if (x + y) % 2 == 0
-                else cell_image_uncovered
-            )
-
-            x_coord = ((cell_size + edge_width) * x) + edge_width
-            y_coord = ((cell_size + edge_width) * y) + edge_width
-
-            board_image.paste(
-                cell_image_to_use,
-                (x_coord, y_coord),
-            )
-
-            cell_text = str(random.randint(1, 8))
-            font_width, font_height = font.getsize(cell_text)
-            draw_context = ImageDraw.Draw(board_image)
-            draw_context.text(
-                (
-                    x_coord + (cell_size / 2) - (font_width / 2),
-                    y_coord + (cell_size / 2) - (font_height / 2),
-                ),
-                cell_text,
-                font=font,
-                fill=(0, 0, 255),
-                align="center",
-
-            )
-
-    board_image.show()
