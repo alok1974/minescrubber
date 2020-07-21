@@ -7,6 +7,7 @@ from . import imager, conf
 
 class MainWidget(QtWidgets.QDialog):
     CELL_SELECTED_SIGNAL = QtCore.Signal(tuple)
+    CELL_FLAGGED_SIGNAL = QtCore.Signal(tuple)
     NEW_GAME_SIGNAL = QtCore.Signal(tuple)
 
     def __init__(self, board, parent=None):
@@ -60,7 +61,7 @@ class MainWidget(QtWidgets.QDialog):
 
         self._marked_mines_label = QtWidgets.QLabel()
         self._marked_mines_label.setText(
-            str(self._board.nb_mines).zfill(3)
+            str(self._board.nb_mines - self._board.nb_flagged).zfill(3)
         )
         font = self._marked_mines_label.font()
         font.setPointSize(30)
@@ -197,8 +198,13 @@ class MainWidget(QtWidgets.QDialog):
             msg_box.showMessage(error_msg)
             return
 
-        if not(5 <= width <= 16) or not(5 <= height <= 16):
-            error_msg = 'Fields should be between 5 and 16!'
+        min_cells, max_cells = self._board.MIN_CELLS, self._board.MAX_CELLS
+        invalid_width = not(min_cells <= width <= max_cells)
+        invalid_height = not(min_cells <= height <= max_cells)
+        if invalid_width or invalid_height:
+            error_msg = (
+                f'Fields should be between '
+                f'{min_cells} and {max_cells}!')
             msg_box = QtWidgets.QErrorMessage(parent=self)
             msg_box.showMessage(error_msg)
             return
@@ -222,7 +228,13 @@ class MainWidget(QtWidgets.QDialog):
         if selected_cell is None:
             return
 
-        self.CELL_SELECTED_SIGNAL.emit(selected_cell)
+        button = event.button()
+        if button == QtCore.Qt.MouseButton.RightButton:
+            signal = self.CELL_FLAGGED_SIGNAL
+        else:
+            signal = self.CELL_SELECTED_SIGNAL
+
+        signal.emit(selected_cell)
 
     def refresh(self, board):
         self._board = board
@@ -230,6 +242,15 @@ class MainWidget(QtWidgets.QDialog):
         self.setFixedSize(
             max(304, self._board_image.qt_image.width() + 40),
             self._board_image.qt_image.height() + 140
+        )
+
+        remaining_mines = max(
+            0,
+            self._board.nb_mines - self._board.nb_flagged,
+        )
+
+        self._marked_mines_label.setText(
+            str(remaining_mines).zfill(3)
         )
         self._pixmap = QtGui.QPixmap.fromImage(self._board_image.qt_image)
         self._image_label.setPixmap(self._pixmap)
@@ -242,6 +263,15 @@ class MainWidget(QtWidgets.QDialog):
         self._restart_image_label.setPixmap(
             QtGui.QPixmap(
                 os.path.join(conf.RESOURCE_DIR, 'sad_48.png')
+            )
+        )
+
+    def game_solved(self, board):
+        self.refresh(board=board)
+        self._timer.stop()
+        self._restart_image_label.setPixmap(
+            QtGui.QPixmap(
+                os.path.join(conf.RESOURCE_DIR, 'shine_48.png')
             )
         )
 
