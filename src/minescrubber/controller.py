@@ -5,8 +5,11 @@ from . import mainwindow
 
 
 class UI(abstract.UI):
-    def __init__(self, board):
-        self.main_window = mainwindow.MainWidget(board=board)
+    def __init__(self):
+        self.main_window = mainwindow.MainWidget()
+
+    def init_board(self, board):
+        self.main_window.init_board(board)
 
     def refresh(self, board):
         self.main_window.refresh(board=board)

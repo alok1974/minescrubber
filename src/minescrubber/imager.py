@@ -44,6 +44,26 @@ class BoardImage:
         return ImageQt.ImageQt(self._board_image)
 
     @property
+    def board(self):
+        return self._board
+
+    @property
+    def image(self):
+        return self._board_image
+
+    @image.setter
+    def image(self, val):
+        self._board_image = val
+
+    @property
+    def width(self):
+        return self._board_image.width
+
+    @property
+    def height(self):
+        return self._board_image.height
+
+    @property
     def is_solved(self):
         return self._board.mine_slots == sorted(
             self._board.covered_slots +
@@ -83,6 +103,10 @@ class BoardImage:
             return
 
         return quotient_x, quotient_y
+
+    def slot_to_pixel(self, slot):
+        x, y = slot
+        return self._get_cell_coordinate(x), self._get_cell_coordinate(y)
 
     def show(self):
         self._board_image.show()

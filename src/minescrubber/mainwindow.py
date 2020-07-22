@@ -10,8 +10,10 @@ class MainWidget(QtWidgets.QDialog):
     CELL_FLAGGED_SIGNAL = QtCore.Signal(tuple)
     NEW_GAME_SIGNAL = QtCore.Signal(tuple)
 
-    def __init__(self, board, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent=parent)
+
+    def init_board(self, board):
         self._board = board
         self._board_image = imager.BoardImage(self._board)
         self._setup_ui()
