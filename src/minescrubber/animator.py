@@ -1,15 +1,12 @@
-import os
-import sys
 import enum
 import io
 import functools
 
 
 from PIL import ImageDraw, Image
-from PySide2 import QtCore, QtWidgets, QtGui
 
 
-from . import conf
+from .qt import BaseDialog, QtCore, QtWidgets, QtGui
 
 
 class DIRECTION(enum.Enum):
@@ -186,7 +183,7 @@ class AnimController(QtCore.QObject):
         )
 
 
-class AnimView(QtWidgets.QDialog):
+class AnimView(BaseDialog):
     def __init__(self, board_image, parent=None):
         super().__init__(parent=parent)
         self._board_image = board_image
@@ -204,9 +201,6 @@ class AnimView(QtWidgets.QDialog):
             max(304, self._ac.qt_image.width() + 40),
             self._ac.qt_image.height() + 120,
         )
-
-        stylesheet = _get_stylesheet('dark_01')
-        self.setStyleSheet(stylesheet)
 
         self._main_layout = QtWidgets.QVBoxLayout(self)
 
@@ -256,15 +250,3 @@ class AnimView(QtWidgets.QDialog):
 
     def _done(self):
         pass
-
-
-def _get_stylesheet(stylesheet_name='dark_01'):
-    stylesheet = None
-    stylesheet_file_path = os.path.join(
-        conf.RESOURCE_DIR,
-        f'{stylesheet_name}.css',
-    )
-    with open(stylesheet_file_path, 'r') as f:
-        stylesheet = f.read()
-
-    return stylesheet

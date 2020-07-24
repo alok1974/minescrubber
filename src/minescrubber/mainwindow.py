@@ -1,11 +1,12 @@
 import os
-from PySide2 import QtWidgets, QtGui, QtCore
+# from PySide2 import QtWidgets, QtGui, QtCore
 
 
 from . import imager, conf
+from .qt import BaseDialog, QtWidgets, QtCore, QtGui
 
 
-class MainWidget(QtWidgets.QDialog):
+class MainWidget(BaseDialog):
     CELL_SELECTED_SIGNAL = QtCore.Signal(tuple)
     CELL_FLAGGED_SIGNAL = QtCore.Signal(tuple)
     NEW_GAME_SIGNAL = QtCore.Signal(tuple)
@@ -29,9 +30,6 @@ class MainWidget(QtWidgets.QDialog):
             max(304, self._board_image.qt_image.width() + 40),
             self._board_image.qt_image.height() + 140
         )
-
-        stylesheet = _get_stylesheet('dark_01')
-        self.setStyleSheet(stylesheet)
 
         self._main_layout = QtWidgets.QVBoxLayout(self)
 
@@ -276,15 +274,3 @@ class MainWidget(QtWidgets.QDialog):
                 os.path.join(conf.RESOURCE_DIR, 'shine_48.png')
             )
         )
-
-
-def _get_stylesheet(stylesheet_name='dark_01'):
-    stylesheet = None
-    stylesheet_file_path = os.path.join(
-        conf.RESOURCE_DIR,
-        f'{stylesheet_name}.css',
-    )
-    with open(stylesheet_file_path, 'r') as f:
-        stylesheet = f.read()
-
-    return stylesheet
