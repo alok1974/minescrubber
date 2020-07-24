@@ -1,8 +1,7 @@
 import os
-# from PySide2 import QtWidgets, QtGui, QtCore
 
 
-from . import imager, conf
+from . import imager, conf, animator
 from .qt import BaseDialog, QtWidgets, QtCore, QtGui
 
 
@@ -16,7 +15,9 @@ class MainWidget(BaseDialog):
 
     def init_board(self, board):
         self._board = board
+        self._last_swept = self._board.last_swept
         self._board_image = imager.BoardImage(self._board)
+        self._ac = animator.AnimController(board_image=self._board_image)
         self._setup_ui()
         self._timer = QtCore.QTimer()
         self._timer.start(1000)
@@ -181,6 +182,8 @@ class MainWidget(BaseDialog):
         self._restart_image_label.mousePressEvent = self._restart
         self._image_label.mousePressEvent = self._on_image_clicked
         self._timer.timeout.connect(self._on_timer_timeout)
+        self._ac.UPDATE_SIGNAL.connect(self._update_image_label)
+        self._ac.DONE_SIGNAL.connect(self._anim_done)
 
     def _on_timer_timeout(self):
         self._time += 1
@@ -209,7 +212,6 @@ class MainWidget(BaseDialog):
             msg_box.showMessage(error_msg)
             return
 
-        self.NEW_GAME_SIGNAL.emit(args)
         self._marked_mines_label.setText(
             str(nb_mines).zfill(3)
         )
@@ -222,6 +224,9 @@ class MainWidget(BaseDialog):
         self._timer.start(1000)
         self._time = 0
         self._timer_label.setText(str(self._time).zfill(3))
+        self._last_swept = []
+
+        self.NEW_GAME_SIGNAL.emit(args)
 
     def _on_image_clicked(self, event):
         selected_cell = self._board_image.pixel_to_slot(event.x(), event.y())
@@ -236,9 +241,14 @@ class MainWidget(BaseDialog):
 
         signal.emit(selected_cell)
 
-    def refresh(self, board):
+    def refresh(self, board, init_image=True):
         self._board = board
-        self._board_image.init_image(self._board)
+
+        if init_image:
+            self._board_image.init_image(self._board)
+
+        self._image_label.setMinimumWidth(self._board_image.qt_image.width())
+        self._image_label.setMinimumHeight(self._board_image.qt_image.height())
         self.setFixedSize(
             max(304, self._board_image.qt_image.width() + 40),
             self._board_image.qt_image.height() + 140
@@ -252,10 +262,31 @@ class MainWidget(BaseDialog):
         self._marked_mines_label.setText(
             str(remaining_mines).zfill(3)
         )
+
+        if self._last_swept != self._board.last_swept:
+            self._last_swept = self._board.last_swept
+            last_swept_cells = []
+            for slot in self._last_swept:
+                last_swept_cells.append(self._board.get_cell(slot))
+
+            self._ac.method = animator.METHOD.ANIMATE_RECTANGLE
+            self._ac.fps = 20
+            self._ac.reveal_cells(
+                cells=last_swept_cells,
+                fill=self._board_image.UNCOVERED_COLOR,
+                fill_from=self._board_image.COVERED_COLOR,
+                time=0.05,
+            )
+        else:
+            self._update_image_label()
+
+    def _update_image_label(self):
         self._pixmap = QtGui.QPixmap.fromImage(self._board_image.qt_image)
         self._image_label.setPixmap(self._pixmap)
-        self._image_label.setMinimumWidth(self._board_image.qt_image.width())
-        self._image_label.setMinimumHeight(self._board_image.qt_image.height())
+
+    def _anim_done(self):
+        self._board_image.init_image(self._board)
+        self._update_image_label()
 
     def game_over(self, board):
         self.refresh(board=board)

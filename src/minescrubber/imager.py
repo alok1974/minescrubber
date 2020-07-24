@@ -21,6 +21,8 @@ class CELL_DRAW_METHOD(enum.Enum):
 
 
 class COLOR:
+    white = (255, 255, 255)
+    black = (0, 0, 0)
     teal = (145, 156, 255)
     light_gray = (200, 200, 200)
     extra_dark_gray = (27, 27, 27)
@@ -35,6 +37,8 @@ class COLOR:
 
 class BoardImage:
     EDGE_WIDTH_CONTROL = 12  # Lesser produces thicker edges (12 is ideal)
+    COVERED_COLOR = COLOR.teal
+    UNCOVERED_COLOR = COLOR.light_gray
 
     def __init__(self, board):
         self.init_image(board=board)
@@ -311,9 +315,9 @@ class BoardImage:
     def _create_cell_image(self, cell_state):
         color = None
         if cell_state == CELL_STYLE.covered:
-            color = COLOR.teal
+            color = self.COVERED_COLOR
         elif cell_state == CELL_STYLE.uncovered:
-            color = COLOR.light_gray
+            color = self.UNCOVERED_COLOR
         else:
             error_msg = (
                 f'Unknown cell_state {cell_state} '

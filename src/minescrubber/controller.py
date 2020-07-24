@@ -11,8 +11,8 @@ class UI(abstract.UI):
     def init_board(self, board):
         self.main_window.init_board(board)
 
-    def refresh(self, board):
-        self.main_window.refresh(board=board)
+    def refresh(self, board, init_image=True):
+        self.main_window.refresh(board=board, init_image=init_image)
 
     def game_over(self, board):
         self.main_window.game_over(board=board)
