@@ -3,7 +3,7 @@ from distutils.core import setup
 from glob import glob
 
 PACKAGE_NAME = 'minescrubber'
-PACKAGE_VERSION = '0.2'
+PACKAGE_VERSION = '0.3'
 
 setup(
     name=PACKAGE_NAME,
@@ -25,7 +25,7 @@ setup(
     },
     scripts=glob('src/scripts/*'),
     install_requires=[
-        'minescrubber_core>=0.3',
+        'minescrubber_core>=0.4',
         'PySide2>=5.15.0',
         'shiboken2>=5.15.0',
         'Pillow>=7.2.0'
