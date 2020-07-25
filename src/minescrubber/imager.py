@@ -20,17 +20,25 @@ class CELL_DRAW_METHOD(enum.Enum):
     solved = 3
 
 
+class COLOR:
+    white = (255, 255, 255)
+    black = (0, 0, 0)
+    teal = (145, 156, 255)
+    light_gray = (200, 200, 200)
+    extra_dark_gray = (27, 27, 27)
+    blue = (0, 0, 255)
+    red = (255, 0, 0)
+    dark_red = (200, 0, 0)
+    green = (0, 255, 0)
+    dark_green = (0, 100, 0)
+    dark_gray = (80, 80, 80)
+    very_dark_gray = (60, 60, 60)
+
+
 class BoardImage:
-    COVERED_COLOR = (145, 156, 255)
-    UNCOVERED_COLOR = (200, 200, 200)
-    EDGE_COLOR = (27, 27, 27)
-    FONT_COLOR = (0, 0, 255)
-    MINE_FONT_COLOR = (255, 0, 0)
-    SOLVED_MINE_COLOR = (80, 80, 80)
-    SOLVED_CROSS_COLOR = (153, 14, 14)
-    SOLVED_CROSS_COLOR = (60, 60, 60)
-    FLAG_FONT_COLOR = (0, 255, 0)
     EDGE_WIDTH_CONTROL = 12  # Lesser produces thicker edges (12 is ideal)
+    COVERED_COLOR = COLOR.teal
+    UNCOVERED_COLOR = COLOR.light_gray
 
     def __init__(self, board):
         self.init_image(board=board)
@@ -38,6 +46,26 @@ class BoardImage:
     @property
     def qt_image(self):
         return ImageQt.ImageQt(self._board_image)
+
+    @property
+    def board(self):
+        return self._board
+
+    @property
+    def image(self):
+        return self._board_image
+
+    @image.setter
+    def image(self, val):
+        self._board_image = val
+
+    @property
+    def width(self):
+        return self._board_image.width
+
+    @property
+    def height(self):
+        return self._board_image.height
 
     @property
     def is_solved(self):
@@ -79,6 +107,10 @@ class BoardImage:
             return
 
         return quotient_x, quotient_y
+
+    def slot_to_pixel(self, slot):
+        x, y = slot
+        return self._get_cell_coordinate(x), self._get_cell_coordinate(y)
 
     def show(self):
         self._board_image.show()
@@ -136,6 +168,14 @@ class BoardImage:
     def _draw_solved(self, x, y, cell):
         self._overlay(x, y, cell, draw_method=CELL_DRAW_METHOD.solved)
 
+    def _get_hint_font_color(self, hint):
+        if hint == 1:
+            return COLOR.dark_green
+        elif hint == 2:
+            return COLOR.blue
+        else:
+            return COLOR.dark_red
+
     def _overlay(self, x, y, cell, draw_method=CELL_DRAW_METHOD.hint):
         font = None
         cell_text = None
@@ -144,7 +184,7 @@ class BoardImage:
         draw_cross = False
         if draw_method == CELL_DRAW_METHOD.mine:
             cell_text = '\U00002620'  # unicode point for skull
-            fill = self.MINE_FONT_COLOR
+            fill = COLOR.red
             font = ImageFont.truetype(
                 conf.FONT_FILE_PATH,
                 size=int(self.cell_image_size / 1.3)
@@ -152,7 +192,7 @@ class BoardImage:
             height_adjustment = -4
         elif draw_method == CELL_DRAW_METHOD.hint:
             cell_text = str(cell.hint)
-            fill = self.FONT_COLOR
+            fill = self._get_hint_font_color(hint=cell.hint)
             font = ImageFont.truetype(
                 conf.FONT_FILE_PATH,
                 size=int(self.cell_image_size / 2.5)
@@ -161,7 +201,7 @@ class BoardImage:
         elif draw_method == CELL_DRAW_METHOD.flag:
             # TODO: Write logic for flag here
             cell_text = '\U00002690'  # unicode point for flag
-            fill = self.FLAG_FONT_COLOR
+            fill = COLOR.green
             font = ImageFont.truetype(
                 conf.FONT_FILE_PATH,
                 size=int(self.cell_image_size / 1.3)
@@ -169,7 +209,7 @@ class BoardImage:
             height_adjustment = -4
         elif draw_method == CELL_DRAW_METHOD.solved:
             cell_text = '\U00002620'  # unicode point for skull
-            fill = self.SOLVED_MINE_COLOR
+            fill = COLOR.dark_gray
             font = ImageFont.truetype(
                 conf.FONT_FILE_PATH,
                 size=int(self.cell_image_size / 1.3)
@@ -214,7 +254,7 @@ class BoardImage:
             p2 = (x + incr_large, y + incr_large)
             draw_context.line(
                 [p1, p2],
-                fill=self.SOLVED_CROSS_COLOR,
+                fill=COLOR.very_dark_gray,
                 width=self._edge_width,
                 joint=None,
             )
@@ -223,7 +263,7 @@ class BoardImage:
             p4 = (x + incr_large, y + incr_small)
             draw_context.line(
                 [p3, p4],
-                fill=self.SOLVED_CROSS_COLOR,
+                fill=COLOR.very_dark_gray,
                 width=self._edge_width,
                 joint=None,
             )
@@ -234,7 +274,7 @@ class BoardImage:
 
         if draw_mines and cell.has_mine:
             cell_text = '\U00002620'  # unicode point for skull
-            fill = self.MINE_FONT_COLOR
+            fill = COLOR.red
             font = ImageFont.truetype(
                 conf.FONT_FILE_PATH,
                 size=int(self.cell_image_size / 1.3)
@@ -242,7 +282,7 @@ class BoardImage:
             height_adjustment = -4
         else:
             cell_text = str(cell.hint)
-            fill = self.FONT_COLOR
+            fill = COLOR.blue
             font = ImageFont.truetype(
                 conf.FONT_FILE_PATH,
                 size=int(self.cell_image_size / 2.5)
@@ -303,5 +343,5 @@ class BoardImage:
         return Image.new(
             'RGBA',
             (board_image_width, board_image_height),
-            color=self.EDGE_COLOR,
+            color=COLOR.extra_dark_gray,
         )

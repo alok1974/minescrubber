@@ -5,11 +5,14 @@ from . import mainwindow
 
 
 class UI(abstract.UI):
-    def __init__(self, board):
-        self.main_window = mainwindow.MainWidget(board=board)
+    def __init__(self):
+        self.main_window = mainwindow.MainWidget()
 
-    def refresh(self, board):
-        self.main_window.refresh(board=board)
+    def init_board(self, board):
+        self.main_window.init_board(board)
+
+    def refresh(self, board, init_image=True):
+        self.main_window.refresh(board=board, init_image=init_image)
 
     def game_over(self, board):
         self.main_window.game_over(board=board)
