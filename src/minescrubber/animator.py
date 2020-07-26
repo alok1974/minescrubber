@@ -26,7 +26,7 @@ class AXIS(enum.Enum):
 
 @enum.unique
 class METHOD(enum.Enum):
-    ANIMATE_RECTANGLE = 0
+    SLIDE = 0
     FADE = 1
     FLIP = 2
 
@@ -319,7 +319,7 @@ class AnimController(QtCore.QObject):
     UPDATE_SIGNAL = QtCore.Signal()
     DONE_SIGNAL = QtCore.Signal()
     DEFAULT_ANIM_SETTINGS = {
-        METHOD.ANIMATE_RECTANGLE: {
+        METHOD.SLIDE: {
             'time': 0.1,
             'fps': 6,
         },
@@ -369,7 +369,7 @@ class AnimController(QtCore.QObject):
             x, y = coord
             sac = SingleAnimController(board_image=self._board_image)
             self._single_controllers.append(sac)
-            if self.method == METHOD.ANIMATE_RECTANGLE:
+            if self.method == METHOD.SLIDE:
                 self._animate_rectangle(sac, x, y, fill, time, fps)
             elif self.method == METHOD.FADE:
                 self._fade(sac, x, y, fill, fill_from, time, fps)
@@ -383,8 +383,8 @@ class AnimController(QtCore.QObject):
             sac.DONE_SIGNAL.connect(self._done)
 
     def _animate_rectangle(self, sac, x, y, fill, time, fps):
-        time = time or self.DEFAULT_ANIM_SETTINGS[METHOD.ANIMATE_RECTANGLE]['time']
-        sac.fps = fps or self.DEFAULT_ANIM_SETTINGS[METHOD.ANIMATE_RECTANGLE]['fps']
+        time = time or self.DEFAULT_ANIM_SETTINGS[METHOD.SLIDE]['time']
+        sac.fps = fps or self.DEFAULT_ANIM_SETTINGS[METHOD.SLIDE]['fps']
         sac.animate_rectangle(
             x=x,
             y=y,
@@ -525,7 +525,7 @@ class AnimView(BaseDialog):
 
     def _run_animate_rect(self):
         import time
-        self._ac.method = METHOD.ANIMATE_RECTANGLE
+        self._ac.method = METHOD.SLIDE
         self._start_time = time.time()
         cells = self._get_random_cells()
         self._ac.reveal_cells(cells=cells, fill=COLOR.light_gray)
