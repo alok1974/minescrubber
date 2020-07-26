@@ -1,5 +1,6 @@
 import enum
 
+
 from PIL import Image, ImageFont, ImageDraw, ImageQt
 
 
