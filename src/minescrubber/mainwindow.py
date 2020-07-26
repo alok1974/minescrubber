@@ -21,7 +21,6 @@ class MainWidget(BaseDialog):
         self._ac = animator.AnimController(board_image=self._board_image)
         self._setup_ui()
         self._timer = QtCore.QTimer()
-        self._timer.start(1000)
         self._time = 0
         self._connect_signals()
 
@@ -212,7 +211,6 @@ class MainWidget(BaseDialog):
             )
         )
         self._restart_image_label.setFocus()
-        self._timer.start(1000)
         self._time = 0
         self._timer_lcd.display(str(self._time).zfill(3))
         self._last_swept = []
@@ -220,6 +218,9 @@ class MainWidget(BaseDialog):
         self.NEW_GAME_SIGNAL.emit(args)
 
     def _on_image_clicked(self, event):
+        if not self._timer.isActive():
+            self._timer.start(1000)
+
         selected_cell = self._board_image.pixel_to_slot(event.x(), event.y())
         if selected_cell is None:
             return
