@@ -23,22 +23,25 @@ class CELL_DRAW_METHOD(enum.Enum):
 class COLOR:
     white = (255, 255, 255)
     black = (0, 0, 0)
+
+    gray_27 = (27, 27, 27)
+    gray_50 = (50, 50, 50)
+    gray_60 = (60, 60, 60)
+    gray_80 = (80, 80, 80)
+    gray_200 = (200, 200, 200)
+
     teal = (145, 156, 255)
-    light_gray = (200, 200, 200)
-    extra_dark_gray = (27, 27, 27)
     blue = (0, 0, 255)
     red = (255, 0, 0)
     dark_red = (200, 0, 0)
     green = (0, 255, 0)
     dark_green = (0, 100, 0)
-    dark_gray = (80, 80, 80)
-    very_dark_gray = (60, 60, 60)
 
 
 class BoardImage:
     EDGE_WIDTH_CONTROL = 12  # Lesser produces thicker edges (12 is ideal)
     COVERED_COLOR = COLOR.teal
-    UNCOVERED_COLOR = COLOR.light_gray
+    UNCOVERED_COLOR = COLOR.gray_200
 
     def __init__(self, board):
         self.init_image(board=board)
@@ -209,7 +212,7 @@ class BoardImage:
             height_adjustment = -4
         elif draw_method == CELL_DRAW_METHOD.solved:
             cell_text = '\U00002620'  # unicode point for skull
-            fill = COLOR.dark_gray
+            fill = COLOR.gray_80
             font = ImageFont.truetype(
                 conf.FONT_FILE_PATH,
                 size=int(self.cell_image_size / 1.3)
@@ -254,7 +257,7 @@ class BoardImage:
             p2 = (x + incr_large, y + incr_large)
             draw_context.line(
                 [p1, p2],
-                fill=COLOR.very_dark_gray,
+                fill=COLOR.gray_60,
                 width=self._edge_width,
                 joint=None,
             )
@@ -263,7 +266,7 @@ class BoardImage:
             p4 = (x + incr_large, y + incr_small)
             draw_context.line(
                 [p3, p4],
-                fill=COLOR.very_dark_gray,
+                fill=COLOR.gray_60,
                 width=self._edge_width,
                 joint=None,
             )
@@ -343,5 +346,5 @@ class BoardImage:
         return Image.new(
             'RGBA',
             (board_image_width, board_image_height),
-            color=COLOR.extra_dark_gray,
+            color=COLOR.gray_27,
         )

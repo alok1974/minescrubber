@@ -239,7 +239,7 @@ class SingleAnimController(QtCore.QObject):
 
     def _flip(self, x, y, x_size, y_size, fill_to, fill_from):
         orig_incr = self._frames_played / self._nb_frames
-        mid_color = COLOR.extra_dark_gray
+        mid_color = COLOR.gray_27
 
         incr = None
         if orig_incr <= 0.5:
@@ -528,7 +528,7 @@ class AnimView(BaseDialog):
         self._ac.method = METHOD.SLIDE
         self._start_time = time.time()
         cells = self._get_random_cells()
-        self._ac.reveal_cells(cells=cells, fill=COLOR.light_gray)
+        self._ac.reveal_cells(cells=cells, fill=COLOR.gray_200)
 
     def _run_fade(self):
         import time
@@ -537,7 +537,7 @@ class AnimView(BaseDialog):
         cells = self._get_random_cells()
         self._ac.reveal_cells(
             cells=cells,
-            fill=COLOR.light_gray,
+            fill=COLOR.gray_200,
             fill_from=COLOR.teal,
         )
 
@@ -548,7 +548,7 @@ class AnimView(BaseDialog):
         cells = self._get_random_cells()
         self._ac.reveal_cells(
             cells=cells,
-            fill=COLOR.light_gray,
+            fill=COLOR.gray_200,
             fill_from=COLOR.teal,
         )
 

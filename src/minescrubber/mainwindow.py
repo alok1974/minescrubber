@@ -66,7 +66,7 @@ class MainWidget(BaseDialog):
         self._marked_mines_lcd.setSegmentStyle(QtWidgets.QLCDNumber.Flat)
         self._marked_mines_lcd.setStyleSheet(
             "color: red;"
-            "background-color: rgb(50, 50, 50);"
+            f"background-color: rgb{imager.COLOR.gray_50};"
             "border: none;"
         )
 
@@ -76,7 +76,7 @@ class MainWidget(BaseDialog):
         self._timer_lcd.setSegmentStyle(QtWidgets.QLCDNumber.Flat)
         self._timer_lcd.setStyleSheet(
             "color: red;"
-            "background-color: rgb(50, 50, 50);"
+            f"background-color: rgb{imager.COLOR.gray_50};"
             "border: none;"
         )
 
