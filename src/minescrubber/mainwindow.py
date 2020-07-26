@@ -212,6 +212,7 @@ class MainWidget(BaseDialog):
         )
         self._restart_image_label.setFocus()
         self._time = 0
+        self._timer.stop()
         self._timer_lcd.display(str(self._time).zfill(3))
         self._last_swept = []
 
