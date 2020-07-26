@@ -69,10 +69,24 @@ class SingleAnimController(QtCore.QObject):
     def qt_image(self):
         return self._board_image.qt_image
 
-    def animate_rectangle(
-            self, x, y, x_size, y_size, axis=AXIS.XY,
-            x_dir=DIRECTION.RIGHT, y_dir=DIRECTION.BOTTOM, fill=None, time=None
-    ):
+    def animate_rectangle(self, x, y, x_size, y_size, fill=None, time=None):
+        import random
+        axis = random.choice(list(AXIS))
+        x_dir = random.choice(list(DIRECTION))
+        y_dir = random.choice(list(DIRECTION))
+
+        if axis == AXIS.XY:
+            if x_dir == DIRECTION.LEFT:
+                x += x_size
+            if y_dir == DIRECTION.TOP:
+                y += y_size
+        elif axis == AXIS.X:
+            if x_dir == DIRECTION.LEFT:
+                x += x_size
+        elif axis == AXIS.Y:
+            if y_dir == DIRECTION.TOP:
+                y += y_size
+
         animate_func_args = (x, y, x_size, y_size)
         animate_func_kwargs = {
             'axis': axis,
@@ -304,6 +318,20 @@ class SingleAnimController(QtCore.QObject):
 class AnimController(QtCore.QObject):
     UPDATE_SIGNAL = QtCore.Signal()
     DONE_SIGNAL = QtCore.Signal()
+    DEFAULT_ANIM_SETTINGS = {
+        METHOD.ANIMATE_RECTANGLE: {
+            'time': 0.1,
+            'fps': 6,
+        },
+        METHOD.FLIP: {
+            'time': 0.5,
+            'fps': 20,
+        },
+        METHOD.FADE: {
+            'time': 0.1,
+            'fps': 6,
+        },
+    }
 
     def __init__(self, board_image, method=METHOD.FADE, parent=None):
         super().__init__(parent=parent)
@@ -334,7 +362,7 @@ class AnimController(QtCore.QObject):
 
     def reveal_cells(
             self, cells, fill,
-            fill_from=None, time=0.05
+            fill_from=None, time=None, fps=None
     ):
         coords = self._get_cell_coordinates(cells)
         for coord in coords:
@@ -342,11 +370,11 @@ class AnimController(QtCore.QObject):
             sac = SingleAnimController(board_image=self._board_image)
             self._single_controllers.append(sac)
             if self.method == METHOD.ANIMATE_RECTANGLE:
-                self._animate_rectangle(sac, x, y, fill, time)
+                self._animate_rectangle(sac, x, y, fill, time, fps)
             elif self.method == METHOD.FADE:
-                self._fade(sac, x, y, fill, fill_from, time)
+                self._fade(sac, x, y, fill, fill_from, time, fps)
             elif self.method == METHOD.FLIP:
-                self._flip(sac, x, y, fill, fill_from, time)
+                self._flip(sac, x, y, fill, fill_from, time, fps)
             else:
                 error_msg = f'The method {self.method} is not implemented'
                 raise RuntimeError(error_msg)
@@ -354,21 +382,21 @@ class AnimController(QtCore.QObject):
             sac.UPDATE_SIGNAL.connect(self._update)
             sac.DONE_SIGNAL.connect(self._done)
 
-    def _animate_rectangle(self, sac, x, y, fill, time):
-        sac.fps = self.fps
+    def _animate_rectangle(self, sac, x, y, fill, time, fps):
+        time = time or self.DEFAULT_ANIM_SETTINGS[METHOD.ANIMATE_RECTANGLE]['time']
+        sac.fps = fps or self.DEFAULT_ANIM_SETTINGS[METHOD.ANIMATE_RECTANGLE]['fps']
         sac.animate_rectangle(
             x=x,
-            y=(y + self._board_image.cell_image_size - 1),
+            y=y,
             x_size=self._board_image.cell_image_size - 1,
             y_size=self._board_image.cell_image_size - 1,
-            y_dir=DIRECTION.TOP,
-            axis=AXIS.Y,
             fill=fill,
             time=time,
         )
 
-    def _fade(self, sac, x, y, fill_to, fill_from, time):
-        sac.fps = self.fps
+    def _fade(self, sac, x, y, fill_to, fill_from, time, fps):
+        time = time or self.DEFAULT_ANIM_SETTINGS[METHOD.FADE]['time']
+        sac.fps = fps or self.DEFAULT_ANIM_SETTINGS[METHOD.FADE]['fps']
         sac.fade(
             x=x,
             y=y,
@@ -379,8 +407,9 @@ class AnimController(QtCore.QObject):
             time=time,
         )
 
-    def _flip(self, sac, x, y, fill_to, fill_from, time):
-        sac.fps = self.fps
+    def _flip(self, sac, x, y, fill_to, fill_from, time, fps):
+        time = time or self.DEFAULT_ANIM_SETTINGS[METHOD.FLIP]['time']
+        sac.fps = fps or self.DEFAULT_ANIM_SETTINGS[METHOD.FLIP]['fps']
         sac.flip(
             x=x,
             y=y,
@@ -499,7 +528,7 @@ class AnimView(BaseDialog):
         self._ac.method = METHOD.ANIMATE_RECTANGLE
         self._start_time = time.time()
         cells = self._get_random_cells()
-        self._ac.reveal_cells(cells=cells, fill=COLOR.light_gray, time=0.1)
+        self._ac.reveal_cells(cells=cells, fill=COLOR.light_gray)
 
     def _run_fade(self):
         import time
@@ -510,7 +539,6 @@ class AnimView(BaseDialog):
             cells=cells,
             fill=COLOR.light_gray,
             fill_from=COLOR.teal,
-            time=0.4,
         )
 
     def _run_flip(self):
@@ -518,12 +546,10 @@ class AnimView(BaseDialog):
         self._ac.method = METHOD.FLIP
         self._start_time = time.time()
         cells = self._get_random_cells()
-        self._ac.fps = 20
         self._ac.reveal_cells(
             cells=cells,
             fill=COLOR.light_gray,
             fill_from=COLOR.teal,
-            time=0.5,
         )
 
     def _reset_image(self):

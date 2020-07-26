@@ -271,12 +271,10 @@ class MainWidget(BaseDialog):
                 last_swept_cells.append(self._board.get_cell(slot))
 
             self._ac.method = random.choice(list(animator.METHOD))
-            self._ac.fps = 20
             self._ac.reveal_cells(
                 cells=last_swept_cells,
                 fill=self._board_image.UNCOVERED_COLOR,
                 fill_from=self._board_image.COVERED_COLOR,
-                time=0.05,
             )
         else:
             self._update_image_label()
