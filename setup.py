@@ -3,7 +3,7 @@ from distutils.core import setup
 from glob import glob
 
 PACKAGE_NAME = 'minescrubber'
-PACKAGE_VERSION = '0.3'
+PACKAGE_VERSION = '0.4'
 
 setup(
     name=PACKAGE_NAME,

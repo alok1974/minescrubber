@@ -1,4 +1,5 @@
 import os
+import random
 
 
 from . import imager, conf, animator
@@ -20,7 +21,6 @@ class MainWidget(BaseDialog):
         self._ac = animator.AnimController(board_image=self._board_image)
         self._setup_ui()
         self._timer = QtCore.QTimer()
-        self._timer.start(1000)
         self._time = 0
         self._connect_signals()
 
@@ -60,37 +60,29 @@ class MainWidget(BaseDialog):
             )
         )
 
-        self._marked_mines_label = QtWidgets.QLabel()
-        self._marked_mines_label.setText(
-            str(self._board.nb_mines - self._board.nb_flagged).zfill(3)
-        )
-        font = self._marked_mines_label.font()
-        font.setPointSize(30)
-        self._marked_mines_label.setFont(font)
-        self._marked_mines_label.setAlignment(QtCore.Qt.AlignCenter)
-        self._marked_mines_label.setStyleSheet(
+        self._marked_mines_lcd = QtWidgets.QLCDNumber()
+        self._marked_mines_lcd.display('000')
+        self._marked_mines_lcd.setDigitCount(3)
+        self._marked_mines_lcd.setSegmentStyle(QtWidgets.QLCDNumber.Flat)
+        self._marked_mines_lcd.setStyleSheet(
             "color: red;"
-            "background-color: rgb(50, 50, 50);"
-            "selection-color: rgb(50, 50, 50);"
-            "selection-background-color: red;"
+            f"background-color: rgb{imager.COLOR.gray_50};"
+            "border: none;"
         )
 
-        self._timer_label = QtWidgets.QLabel()
-        self._timer_label.setText('000')
-        font = self._timer_label.font()
-        font.setPointSize(30)
-        self._timer_label.setFont(font)
-        self._timer_label.setAlignment(QtCore.Qt.AlignCenter)
-        self._timer_label.setStyleSheet(
+        self._timer_lcd = QtWidgets.QLCDNumber()
+        self._timer_lcd.display('000')
+        self._timer_lcd.setDigitCount(3)
+        self._timer_lcd.setSegmentStyle(QtWidgets.QLCDNumber.Flat)
+        self._timer_lcd.setStyleSheet(
             "color: red;"
-            "background-color: rgb(50, 50, 50);"
-            "selection-color: rgb(50, 50, 50);"
-            "selection-background-color: red;"
+            f"background-color: rgb{imager.COLOR.gray_50};"
+            "border: none;"
         )
 
-        self._top_layout.addWidget(self._marked_mines_label, 1)
+        self._top_layout.addWidget(self._marked_mines_lcd, 1)
         self._top_layout.addWidget(self._restart_image_label)
-        self._top_layout.addWidget(self._timer_label, 1)
+        self._top_layout.addWidget(self._timer_lcd, 1)
 
         return self._top_layout
 
@@ -187,7 +179,7 @@ class MainWidget(BaseDialog):
 
     def _on_timer_timeout(self):
         self._time += 1
-        self._timer_label.setText(str(self._time).zfill(3))
+        self._timer_lcd.display(str(self._time).zfill(3))
 
     def _restart(self, event=None):
         try:
@@ -212,23 +204,24 @@ class MainWidget(BaseDialog):
             msg_box.showMessage(error_msg)
             return
 
-        self._marked_mines_label.setText(
-            str(nb_mines).zfill(3)
-        )
+        self._marked_mines_lcd.display(str(nb_mines).zfill(3))
         self._restart_image_label.setPixmap(
             QtGui.QPixmap(
                 os.path.join(conf.RESOURCE_DIR, 'happy_48.png')
             )
         )
         self._restart_image_label.setFocus()
-        self._timer.start(1000)
         self._time = 0
-        self._timer_label.setText(str(self._time).zfill(3))
+        self._timer.stop()
+        self._timer_lcd.display(str(self._time).zfill(3))
         self._last_swept = []
 
         self.NEW_GAME_SIGNAL.emit(args)
 
     def _on_image_clicked(self, event):
+        if not self._timer.isActive():
+            self._timer.start(1000)
+
         selected_cell = self._board_image.pixel_to_slot(event.x(), event.y())
         if selected_cell is None:
             return
@@ -258,10 +251,7 @@ class MainWidget(BaseDialog):
             0,
             self._board.nb_mines - self._board.nb_flagged,
         )
-
-        self._marked_mines_label.setText(
-            str(remaining_mines).zfill(3)
-        )
+        self._marked_mines_lcd.display(str(remaining_mines).zfill(3))
 
         if self._last_swept != self._board.last_swept:
             self._last_swept = self._board.last_swept
@@ -269,13 +259,11 @@ class MainWidget(BaseDialog):
             for slot in self._last_swept:
                 last_swept_cells.append(self._board.get_cell(slot))
 
-            self._ac.method = animator.METHOD.ANIMATE_RECTANGLE
-            self._ac.fps = 20
+            self._ac.method = random.choice(list(animator.METHOD))
             self._ac.reveal_cells(
                 cells=last_swept_cells,
                 fill=self._board_image.UNCOVERED_COLOR,
                 fill_from=self._board_image.COVERED_COLOR,
-                time=0.05,
             )
         else:
             self._update_image_label()
