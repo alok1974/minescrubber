@@ -2,7 +2,7 @@
 
 Classic Minesweeper game implemented in python
 
-![minescrubber_image](https://github.com/alok1974/minescrubber/blob/develop/minescrubber.png)
+![minescrubber_image](https://github.com/alok1974/minescrubber/blob/master/minescrubber.png)
 
 ## Installing
 ```
